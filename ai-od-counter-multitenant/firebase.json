@@ -1,0 +1,47 @@
+{
+  "firestore": {
+    "rules": "firebase-backend/firestore/firestore.rules",
+    "indexes": "firebase-backend/firestore/firestore.indexes.json"
+  },
+  "functions": {
+    "source": "firebase-backend/functions",
+    "runtime": "nodejs20",
+    "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+  },
+  "hosting": [
+    {
+      "target": "subadmin",
+      "public": "web-dashboard/build",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "superadmin",
+      "public": "web-dashboard/build",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ]
+}
+
+
+
+

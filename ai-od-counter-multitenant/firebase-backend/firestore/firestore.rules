@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isSuperadmin() {
+      return isAuthenticated() && 
+             request.auth.token.role == 'superadmin';
+    }
+    
+    function isSubadmin() {
+      return isAuthenticated() && 
+             request.auth.token.role == 'subadmin';
+    }
+    
+    function isViewer() {
+      return isAuthenticated() && 
+             request.auth.token.role == 'viewer';
+    }
+    
+    // Superadmins
+    match /superadmins/{adminId} {
+      allow read: if true; // For setup check
+      allow write: if false; // Only Cloud Functions
+    }
+    
+    match /superadmins {
+      allow list: if true; // For setup detection
+    }
+    
+    // Subadmins
+    match /subadmins/{subadminId} {
+      allow read: if isSuperadmin() || (isSubadmin() && request.auth.uid == subadminId);
+      allow write: if isSuperadmin();
+    }
+    
+    match /subadmins {
+      allow list: if isSuperadmin();
+    }
+    
+    // Viewers
+    match /viewers/{viewerId} {
+      allow read: if isSuperadmin() || (isViewer() && request.auth.uid == viewerId);
+      allow write: if isSuperadmin();
+    }
+    
+    match /viewers {
+      allow list: if isSuperadmin();
+    }
+    
+    // Sites
+    match /sites/{siteId} {
+      allow read: if isSuperadmin() || isSubadmin() || isViewer();
+      allow write: if isSuperadmin();
+    }
+    
+    match /sites {
+      allow list: if isSuperadmin() || isSubadmin() || isViewer();
+    }
+    
+    // Pending Cameras
+    match /pending_cameras/{deviceId} {
+      allow create: if request.resource.data.deviceId == deviceId &&
+                       request.resource.data.status == 'pending';
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['lastSeen']);
+      allow read, delete: if isSuperadmin();
+    }
+    
+    match /pending_cameras {
+      allow list: if isSuperadmin();
+    }
+    
+    // Active Cameras
+    match /cameras/{cameraId} {
+      allow read: if isSuperadmin() || isSubadmin() || isViewer();
+      allow write: if isSuperadmin();
+      
+      // Counts subcollection
+      match /counts/{countId} {
+        allow read: if isSuperadmin() || isSubadmin() || isViewer();
+        allow create: if isAuthenticated(); // Camera devices
+        allow update, delete: if false; // Immutable
+      }
+    }
+    
+    match /cameras {
+      allow list: if isSuperadmin() || isSubadmin() || isViewer();
+    }
+    
+    // Provisioning Tokens
+    match /provisioningTokens/{token} {
+      allow read, write: if isSuperadmin();
+      allow read: if isAuthenticated(); // For validation
+    }
+    
+    match /provisioningTokens {
+      allow list: if isSuperadmin();
+    }
+  }
+}

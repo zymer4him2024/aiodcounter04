@@ -1,0 +1,26 @@
+[Unit]
+Description=AIOD Counter 03 Edge Detection Service
+After=network-online.target aiodcounter03-firstboot.service
+Wants=network-online.target
+Requires=aiodcounter03-firstboot.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/opt/aiodcounter03
+Environment="APP_DIR=/opt/aiodcounter03"
+Environment="PATH=/opt/aiodcounter03/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/opt/aiodcounter03/venv/bin/python3 /opt/aiodcounter03/detection_client.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+

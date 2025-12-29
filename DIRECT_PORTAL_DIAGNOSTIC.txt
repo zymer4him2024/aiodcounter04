@@ -1,0 +1,81 @@
+Run these commands ON the Raspberry Pi (one by one) to diagnose:
+
+==========================================
+QUICK DIAGNOSTICS (Run on RPi)
+==========================================
+
+1. Check if camera is already configured (THIS STOPS PORTAL):
+   ls -la /opt/camera-agent/config.json
+   
+   If file EXISTS → Portal won't run (this is expected!)
+   If file MISSING → Portal should run
+
+2. Check if Flask is installed:
+   python3 -c "import flask; print('Flask OK')" || echo "Flask NOT installed"
+
+3. Check if provisioning portal file exists:
+   ls -la /opt/camera-agent/provisioning_portal.py
+
+4. Check if anything is running on port 80:
+   sudo netstat -tlnp 2>/dev/null | grep :80 || sudo ss -tlnp 2>/dev/null | grep :80
+
+5. Check if WiFi hotspot is active:
+   iwconfig wlan0 2>/dev/null | grep Mode
+
+6. Check if provisioning service exists:
+   systemctl list-unit-files | grep provisioning
+
+7. Try running portal manually:
+   sudo python3 /opt/camera-agent/provisioning_portal.py
+   
+   What happens? Does it exit immediately or start?
+
+==========================================
+MOST LIKELY ISSUE
+==========================================
+
+The portal checks if config.json exists and EXITS if it does:
+
+if Path("/opt/camera-agent/config.json").exists():
+    sys.exit(0)  # Portal won't run!
+
+This means:
+- Portal only runs for UNCONFIGURED cameras
+- If camera is already set up → Portal won't start (normal!)
+- Portal is ONLY for first-time provisioning
+
+==========================================
+SOLUTION: Test Portal (if camera already configured)
+==========================================
+
+To test portal even if camera is configured:
+
+1. Backup config:
+   sudo mv /opt/camera-agent/config.json /opt/camera-agent/config.json.backup
+
+2. Stop camera agent:
+   sudo systemctl stop camera-agent
+
+3. Run portal manually:
+   sudo python3 /opt/camera-agent/provisioning_portal.py
+
+4. Test from phone connected to camera WiFi:
+   http://192.168.4.1/?token=PT_TEST123
+
+5. Restore config after testing:
+   sudo mv /opt/camera-agent/config.json.backup /opt/camera-agent/config.json
+
+==========================================
+OR: Create Always-Running Portal for Testing
+==========================================
+
+If you need portal to always run (for testing), modify the check:
+
+sudo nano /opt/camera-agent/provisioning_portal.py
+
+Find line 237-239 and comment it out:
+# if Path(CONFIG_PATH).exists():
+#     logger.info("Already configured - exiting")
+#     sys.exit(0)
+
+

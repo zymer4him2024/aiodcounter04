@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+**/node_modules/
+/build
+/dist
+.env
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+
+# Sensitive Files
+*.json
+!firebase.json
+!package.json
+!package-lock.json
+!firestore.indexes.json
+!firestore.rules
+!tsconfig.json
+!rpi/provision.json.example
+!ai-od-counter-multitenant/firebase-backend/functions/package.json
+!ai-od-counter-multitenant/firebase-backend/functions/package-lock.json
+!ai-od-counter-multitenant/firebase-backend/functions/tsconfig.json
+!ai-od-counter-multitenant/web-dashboard/package.json
+!ai-od-counter-multitenant/web-dashboard/package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db

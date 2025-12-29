@@ -1,0 +1,14 @@
+{
+  "enrollToken": "your-enrollment-token-here",
+  "siteId": "site-001",
+  "cameraId": "camera-001",
+  "windowSeconds": 60,
+  "healthCheckUrl": "https://api.example.com/health",
+  "validateUrl": "https://api.example.com/validate"
+}
+
+
+
+
+
+

@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "aiodcouter04"
+  },
+  "targets": {
+    "aiodcouter04": {
+      "hosting": {
+        "subadmin": [
+          "aiodcounter04"
+        ],
+        "superadmin": [
+          "aiodcounter04-superadmin"
+        ]
+      }
+    }
+  }
+}

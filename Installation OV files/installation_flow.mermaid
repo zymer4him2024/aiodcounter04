@@ -1,0 +1,112 @@
+graph TD
+    Start([🚀 START: Multi-Tier Object Detection System]) --> Firebase[📦 Phase 1: Firebase Backend Setup]
+    
+    Firebase --> FB1[Create Firebase Project]
+    FB1 --> FB2[Enable Services:<br/>Auth, Firestore, Functions, Storage]
+    FB2 --> FB3[Deploy Security Rules]
+    FB3 --> FB4[Deploy Cloud Functions]
+    FB4 --> SuperAdmin[👤 Create Super Admin Account]
+    
+    SuperAdmin --> SA1[Set Strong Password]
+    SA1 --> SA2[Enable 2FA]
+    SA2 --> SA3[Document Credentials Securely]
+    
+    SA3 --> OrgSetup[🏢 Phase 2: Organization Setup]
+    OrgSetup --> ORG1[Create Organization Record]
+    ORG1 --> ORG2[Register Sites]
+    ORG2 --> ORG3[Upload Floor Plans Optional]
+    
+    ORG3 --> UserMgmt[👥 Phase 3: User Management]
+    UserMgmt --> USR1[Super Admin Invites Sub-Admins]
+    USR1 --> USR2[Sub-Admins Receive Email]
+    USR2 --> USR3{Sub-Admin<br/>Accepts?}
+    
+    USR3 -->|Yes| USR4[Set Password + 2FA]
+    USR3 -->|No| USR5[Resend Invitation<br/>after 72hrs]
+    USR5 --> USR2
+    
+    USR4 --> USR6[Access Assigned Sites]
+    USR6 --> CamDeploy[📹 Phase 4: Camera Deployment]
+    
+    CamDeploy --> CAM1[Physical Installation by Technician]
+    CAM1 --> CAM2[Mount at 2.5-4m height<br/>15-30° angle]
+    CAM2 --> CAM3[Connect Power PoE+/12V DC]
+    CAM3 --> CAM4[Connect Ethernet]
+    CAM4 --> CAM5{Network<br/>Connected?}
+    
+    CAM5 -->|No| CAM6[Check Cable/Router]
+    CAM6 --> CAM4
+    CAM5 -->|Yes| CAM7[Note Serial Number + MAC]
+    
+    CAM7 --> CAM8[Sub-Admin: Register Camera]
+    CAM8 --> CAM9[Enter Details in Dashboard]
+    CAM9 --> CAM10[System Generates Camera ID<br/>+ API Credentials]
+    CAM10 --> CAM11[Download Config JSON]
+    CAM11 --> CAM12[Upload Config to Camera]
+    CAM12 --> CAM13{Camera<br/>Online?}
+    
+    CAM13 -->|No| CAM14[Check API Key/Network]
+    CAM14 --> CAM12
+    CAM13 -->|Yes| CAM15[Configure Detection Zones]
+    
+    CAM15 --> CAM16[Draw Polygons on Live Feed]
+    CAM16 --> CAM17[Select Object Types<br/>person, vehicle, forklift, etc.]
+    CAM17 --> CAM18[Set Confidence Threshold<br/>0.75-0.85]
+    CAM18 --> CAM19[Run 5-Minute Test]
+    CAM19 --> CAM20{Accuracy<br/>Good?}
+    
+    CAM20 -->|No| CAM21[Adjust Zones/Threshold]
+    CAM21 --> CAM19
+    CAM20 -->|Yes| CAM22[Save Configuration]
+    
+    CAM22 --> ALERT1[⚠️ Configure Alerts]
+    ALERT1 --> ALERT2[Create Alert Rules]
+    ALERT2 --> ALERT3[Set Thresholds]
+    ALERT3 --> ALERT4[Configure Channels<br/>Email/SMS/Push]
+    ALERT4 --> ALERT5[Test Alert]
+    ALERT5 --> ALERT6{Alert<br/>Received?}
+    
+    ALERT6 -->|No| ALERT7[Check Email/SMS Config]
+    ALERT7 --> ALERT5
+    ALERT6 -->|Yes| ALERT8[Activate Alert Rule]
+    
+    ALERT8 --> Viewer[👁️ Optional: Invite Viewers]
+    Viewer --> VIEW1[Sub-Admin Invites Viewers]
+    VIEW1 --> VIEW2[Set Read-Only Permissions]
+    VIEW2 --> VIEW3[Viewers Accept Invitation]
+    
+    VIEW3 --> GoLive[🎯 Phase 5: Go-Live]
+    GoLive --> GO1[Day 1: Validate Accuracy]
+    GO1 --> GO2{Counts<br/>Accurate?}
+    
+    GO2 -->|No| GO3[Fine-Tune Zones]
+    GO3 --> GO1
+    GO2 -->|Yes| GO4[Week 1: Daily Monitoring]
+    
+    GO4 --> GO5[Check Error Logs]
+    GO5 --> GO6[Review Analytics]
+    GO6 --> GO7[Gather User Feedback]
+    GO7 --> GO8[Month 1: Optimization]
+    
+    GO8 --> GO9[Adjust Based on Real Data]
+    GO9 --> GO10[Optimize Firebase Costs]
+    GO10 --> Success([✅ SYSTEM OPERATIONAL])
+    
+    Success --> Scale{Scale to<br/>More Sites?}
+    Scale -->|Yes| ORG2
+    Scale -->|No| Monitor[📊 Ongoing Monitoring]
+    
+    Monitor --> MON1[Daily: Check Camera Status]
+    MON1 --> MON2[Weekly: Review Reports]
+    MON2 --> MON3[Monthly: Security Audit]
+    MON3 --> MON4[Quarterly: Rotate API Keys]
+    MON4 --> Monitor
+    
+    style Start fill:#4CAF50,stroke:#2E7D32,stroke-width:3px,color:#fff
+    style Success fill:#4CAF50,stroke:#2E7D32,stroke-width:3px,color:#fff
+    style Firebase fill:#FFA726,stroke:#F57C00,stroke-width:2px
+    style OrgSetup fill:#FFA726,stroke:#F57C00,stroke-width:2px
+    style UserMgmt fill:#FFA726,stroke:#F57C00,stroke-width:2px
+    style CamDeploy fill:#FFA726,stroke:#F57C00,stroke-width:2px
+    style GoLive fill:#FFA726,stroke:#F57C00,stroke-width:2px
+    style Monitor fill:#42A5F5,stroke:#1976D2,stroke-width:2px

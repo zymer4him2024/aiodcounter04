@@ -1,0 +1,23 @@
+[Unit]
+Description=AIOD Counter 03 First Boot Registration
+After=network-online.target
+Wants=network-online.target
+Before=aiodcounter03-edge.service
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/opt/aiodcounter03
+ExecStart=/opt/aiodcounter03/venv/bin/python3 /opt/aiodcounter03/firstboot_register.py
+StandardOutput=journal
+StandardError=journal
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+
