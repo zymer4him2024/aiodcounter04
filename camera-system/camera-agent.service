@@ -1,0 +1,20 @@
+[Unit]
+Description=AIOD Camera Agent
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/camera-agent/config.json
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/camera-agent
+ExecStart=/usr/bin/python3 /opt/camera-agent/camera_agent.py /opt/camera-agent/config.json
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+

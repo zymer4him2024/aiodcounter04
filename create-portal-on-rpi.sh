@@ -278,3 +278,4 @@ sudo chmod +x /opt/camera-agent/provisioning_portal.py
 echo "✅ Provisioning portal file created!"
 
 
+

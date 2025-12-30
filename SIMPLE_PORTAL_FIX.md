@@ -128,3 +128,4 @@ sudo netstat -tlnp | grep -E ":80|:5000" || echo "Nothing listening on 80 or 500
 **The key question:** Is this a camera that needs provisioning, or is it already configured and should be working?
 
 
+

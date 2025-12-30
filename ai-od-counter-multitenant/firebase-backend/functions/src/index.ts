@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
+import axios from "axios";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -557,7 +558,7 @@ export const provisionCamera = functions.https.onRequest(
         assignedCameras: admin.firestore.FieldValue.arrayUnion(cameraId),
       });
 
-      // Prepare configuration for camera
+      // Prepare configuration for camera (matches camera_agent.py expectations)
       const config = {
         cameraId,
         cameraName: tokenData.cameraName,
@@ -567,19 +568,24 @@ export const provisionCamera = functions.https.onRequest(
         macAddress,
         serialNumber,
         deviceToken,
+        // Use siteId as orgId (can be refined later with proper org hierarchy)
+        orgId: tokenData.siteId,
         firebaseConfig: {
           apiKey: "AIzaSyAKCOYmCpOD2aGxDXHul50MPLK1GSrZBr8",
           projectId: "aiodcouter04",
         },
         transmissionConfig: {
-          interval: 300, // 5 minutes
+          aggregationInterval: 300, // 5 minutes (matches camera_agent.py)
           batchSize: 10,
+          maxRetries: 3,
         },
         detectionConfig: {
-          zones: [],
+          detectionZones: [], // Matches camera_agent.py (was 'zones')
           objectClasses: ["person", "vehicle", "forklift"],
           confidenceThreshold: 0.8,
+          modelPath: "/opt/camera-agent/model.tflite", // Default model path on RPi
         },
+        serviceAccountPath: "/opt/camera-agent/service-account.json", // Expected location on RPi
       };
 
       functions.logger.info(`Camera provisioned: ${cameraId} via token ${provisioningToken}`);
@@ -641,3 +647,234 @@ export const updateCameraStatus = functions.pubsub
       return null;
     }
   });
+
+// ============================================================================
+// CAMERA DETECTION CONTROL FUNCTIONS
+// ============================================================================
+
+/**
+ * Start detection on a camera (proxies to RPi API)
+ */
+export const startCameraDetection = functions.https.onCall(
+  async (data, context) => {
+    try {
+      verifyAuth(context);
+      const { cameraId, raspberryPiIp } = data;
+
+      if (!cameraId || !raspberryPiIp) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "cameraId and raspberryPiIp are required"
+        );
+      }
+
+      // Verify user has access to this camera
+      const cameraDoc = await db.collection("cameras").doc(cameraId).get();
+      if (!cameraDoc.exists) {
+        throw new functions.https.HttpsError("not-found", "Camera not found");
+      }
+
+      const cameraData = cameraDoc.data();
+      const role = context.auth?.token.role;
+
+      // Check permissions
+      if (role === "viewer" || 
+          (role === "subadmin" && cameraData?.subadminId !== context.auth?.uid)) {
+        throw new functions.https.HttpsError(
+          "permission-denied",
+          "You don't have permission to control this camera"
+        );
+      }
+
+      // Call RPi API
+      try {
+        const response = await axios.post(
+          `http://${raspberryPiIp}:5000/api/detection/start`,
+          {
+            camera_id: cameraId,
+            backend_url: `https://${functions.config().project.region || 'us-central1'}-${functions.config().project.id}.cloudfunctions.net`,
+            report_interval: 5
+          },
+          { timeout: 10000 }
+        );
+
+        return {
+          success: true,
+          data: response.data
+        };
+      } catch (rpiError: any) {
+        functions.logger.error("RPi API error:", rpiError);
+        throw new functions.https.HttpsError(
+          "internal",
+          `Failed to start detection: ${rpiError.message}`
+        );
+      }
+    } catch (error: any) {
+      functions.logger.error("Error starting detection:", error);
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      throw new functions.https.HttpsError(
+        "internal",
+        error.message || "Failed to start detection"
+      );
+    }
+  }
+);
+
+/**
+ * Stop detection on a camera (proxies to RPi API)
+ */
+export const stopCameraDetection = functions.https.onCall(
+  async (data, context) => {
+    try {
+      verifyAuth(context);
+      const { cameraId, raspberryPiIp } = data;
+
+      if (!cameraId || !raspberryPiIp) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "cameraId and raspberryPiIp are required"
+        );
+      }
+
+      // Verify user has access to this camera
+      const cameraDoc = await db.collection("cameras").doc(cameraId).get();
+      if (!cameraDoc.exists) {
+        throw new functions.https.HttpsError("not-found", "Camera not found");
+      }
+
+      const cameraData = cameraDoc.data();
+      const role = context.auth?.token.role;
+
+      // Check permissions
+      if (role === "viewer" || 
+          (role === "subadmin" && cameraData?.subadminId !== context.auth?.uid)) {
+        throw new functions.https.HttpsError(
+          "permission-denied",
+          "You don't have permission to control this camera"
+        );
+      }
+
+      // Call RPi API
+      try {
+        const response = await axios.post(
+          `http://${raspberryPiIp}:5000/api/detection/stop`,
+          {},
+          { timeout: 10000 }
+        );
+
+        return {
+          success: true,
+          data: response.data
+        };
+      } catch (rpiError: any) {
+        functions.logger.error("RPi API error:", rpiError);
+        throw new functions.https.HttpsError(
+          "internal",
+          `Failed to stop detection: ${rpiError.message}`
+        );
+      }
+    } catch (error: any) {
+      functions.logger.error("Error stopping detection:", error);
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      throw new functions.https.HttpsError(
+        "internal",
+        error.message || "Failed to stop detection"
+      );
+    }
+  }
+);
+
+/**
+ * Get detection status from RPi
+ */
+export const getCameraDetectionStatus = functions.https.onCall(
+  async (data, context) => {
+    try {
+      verifyAuth(context);
+      const { cameraId, raspberryPiIp } = data;
+
+      if (!cameraId || !raspberryPiIp) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "cameraId and raspberryPiIp are required"
+        );
+      }
+
+      // Verify user has access to this camera
+      const cameraDoc = await db.collection("cameras").doc(cameraId).get();
+      if (!cameraDoc.exists) {
+        throw new functions.https.HttpsError("not-found", "Camera not found");
+      }
+
+      // Call RPi API
+      try {
+        const response = await axios.get(
+          `http://${raspberryPiIp}:5000/api/detection/status`,
+          { timeout: 5000 }
+        );
+
+        return {
+          success: true,
+          data: response.data
+        };
+      } catch (rpiError: any) {
+        functions.logger.error("RPi API error:", rpiError);
+        throw new functions.https.HttpsError(
+          "internal",
+          `Failed to get status: ${rpiError.message}`
+        );
+      }
+    } catch (error: any) {
+      functions.logger.error("Error getting status:", error);
+      if (error instanceof functions.https.HttpsError) {
+        throw error;
+      }
+      throw new functions.https.HttpsError(
+        "internal",
+        error.message || "Failed to get status"
+      );
+    }
+  }
+);
+
+/**
+ * Receive detection counts from RPi (HTTP endpoint)
+ */
+export const receiveDetectionCounts = functions.https.onRequest(
+  async (req, res) => {
+    try {
+      if (req.method !== "POST") {
+        return res.status(405).json({ success: false, error: "Method not allowed" });
+      }
+
+      const {
+        camera_id,
+        timestamp,
+        counts,
+        total_objects,
+        frames_processed,
+        fps,
+        runtime_seconds
+      } = req.body;
+
+      if (!camera_id) {
+        return res.status(400).json({ success: false, error: "camera_id required" });
+      }
+
+      functions.logger.info(`Received counts from camera ${camera_id}:`, counts);
+
+      // You can save to Firestore or process here
+      // For now, we'll just log it
+      // The counts are already being sent to Firebase by the RPi agent
+
+      res.json({ success: true, received: true });
+    } catch (error: any) {
+      functions.logger.error("Error receiving counts:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);

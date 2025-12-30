@@ -4,9 +4,9 @@ Camera Status Update Utility
 Updates camera document in Firestore with real-time status metrics
 """
 
-import firebase_admin
-from firebase_admin import credentials, firestore
-import psutil
+import firebase_admin  # type: ignore[import-untyped]  # Installed via requirements.txt
+from firebase_admin import credentials, firestore  # type: ignore[import-untyped]  # Installed via requirements.txt
+import psutil  # type: ignore[import-untyped]  # Installed via requirements.txt
 import time
 import os
 import sys

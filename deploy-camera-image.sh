@@ -120,3 +120,4 @@ echo "     - Create WiFi hotspot"
 echo "     - Wait for activation"
 echo ""
 
+
