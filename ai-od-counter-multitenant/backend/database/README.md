@@ -113,3 +113,4 @@ The backend supports both PostgreSQL and Firestore:
 - Otherwise, Firestore will be used
 - Both can be used simultaneously for redundancy
 
+

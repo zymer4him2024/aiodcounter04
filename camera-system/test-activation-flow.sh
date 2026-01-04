@@ -395,3 +395,4 @@ echo "  Check portal status:  sudo systemctl status provisioning-portal"
 echo ""
 
 
+

@@ -56,3 +56,4 @@ echo "  ssh ${RPI_HOST}"
 echo "  sudo journalctl -u camera-agent -f"
 echo ""
 
+

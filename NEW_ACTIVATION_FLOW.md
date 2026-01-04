@@ -150,3 +150,4 @@ sudo systemctl status provisioning-portal
 - Check Firebase is reachable: `curl -I https://us-central1-aiodcouter04.cloudfunctions.net`
 - Check portal logs: `sudo journalctl -u provisioning-portal -f`
 
+

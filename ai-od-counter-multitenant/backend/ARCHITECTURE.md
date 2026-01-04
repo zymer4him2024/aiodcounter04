@@ -337,3 +337,4 @@ BACKEND_URL=https://your-backend.com
 - **Network Latency:** <100ms (local network)
 - **Database Write:** <50ms per count batch
 
+

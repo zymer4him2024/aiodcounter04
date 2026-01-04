@@ -170,3 +170,4 @@ sudo ufw allow 5000/tcp
 - The agent continues running even when detection is stopped
 - Use `autoStart: true` in config if you want detection to start automatically
 
+

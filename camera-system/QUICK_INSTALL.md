@@ -60,3 +60,4 @@ sudo journalctl -u camera-agent -f
 
 
 
+

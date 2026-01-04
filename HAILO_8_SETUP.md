@@ -143,3 +143,4 @@ sudo pip3 install --break-system-packages --upgrade hailortcli
 - Model Zoo: https://hailo.ai/developer-zone/model-zoo/
 - Hailo Community: https://community.hailo.ai/
 
+

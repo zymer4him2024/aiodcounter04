@@ -179,3 +179,4 @@ echo "4. Update config.json modelPath to: $HEF_FILE"
 echo "5. Restart camera-agent service"
 echo ""
 
+

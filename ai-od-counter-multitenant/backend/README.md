@@ -189,3 +189,4 @@ CMD ["node", "server.js"]
 - Check `FRONTEND_URL` in `.env` matches your frontend
 - Verify CORS settings in `server.js`
 
+

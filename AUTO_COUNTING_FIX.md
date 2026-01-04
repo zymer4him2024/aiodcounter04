@@ -133,3 +133,4 @@ Once counting is working:
 - Modify aggregation interval if you want more/less frequent uploads
 - Add object tracking for more accurate in/out counting (future enhancement)
 
+

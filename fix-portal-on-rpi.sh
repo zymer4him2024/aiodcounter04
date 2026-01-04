@@ -152,3 +152,4 @@ echo ""
 echo "View logs: sudo journalctl -u provisioning-portal -f"
 echo ""
 
+

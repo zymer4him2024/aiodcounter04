@@ -90,3 +90,4 @@ file /opt/camera-agent/models/*.hef
 - **Wrong format**: Must be `.hef` for Hailo-8, not `.pt` or `.tflite`
 - **Access denied**: Some Hailo models require account access - sign in to Model Zoo
 
+

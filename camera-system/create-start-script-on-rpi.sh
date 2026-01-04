@@ -128,3 +128,4 @@ echo "Monitor logs: sudo journalctl -u camera-agent -f"
 echo "Check status: sudo systemctl status camera-agent"
 EOF
 
+

@@ -67,3 +67,4 @@ sudo journalctl -u provisioning-portal -n 20
 # You should see "Step 1: Connect to Site WiFi"
 ```
 
+

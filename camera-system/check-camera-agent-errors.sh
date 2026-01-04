@@ -46,3 +46,4 @@ echo "  - Invalid configuration"
 echo "  - Missing Firebase credentials"
 echo ""
 
+

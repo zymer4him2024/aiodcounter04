@@ -58,3 +58,4 @@ python3 -c "import firebase_admin, psutil, cv2, numpy, sqlalchemy; print('✅ Al
 
 The linter warnings are IDE-specific and don't affect runtime execution. If the Python import test above succeeds, your code will run correctly.
 
+

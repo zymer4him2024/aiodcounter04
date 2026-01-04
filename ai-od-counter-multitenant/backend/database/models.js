@@ -138,21 +138,30 @@ class CamerasModel {
       raspberry_pi_ip,
       detection_status,
       detection_started_at,
-      detection_stopped_at
+      detection_stopped_at,
+      activated,
+      activated_at,
+      status,
+      site_id
     } = data;
 
     const query = `
       INSERT INTO cameras (
         id, name, raspberry_pi_ip, detection_status,
-        detection_started_at, detection_stopped_at
+        detection_started_at, detection_stopped_at,
+        activated, activated_at, status, site_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        raspberry_pi_ip = EXCLUDED.raspberry_pi_ip,
-        detection_status = EXCLUDED.detection_status,
+        name = COALESCE(EXCLUDED.name, cameras.name),
+        raspberry_pi_ip = COALESCE(EXCLUDED.raspberry_pi_ip, cameras.raspberry_pi_ip),
+        detection_status = COALESCE(EXCLUDED.detection_status, cameras.detection_status),
         detection_started_at = EXCLUDED.detection_started_at,
         detection_stopped_at = EXCLUDED.detection_stopped_at,
+        activated = COALESCE(EXCLUDED.activated, cameras.activated),
+        activated_at = COALESCE(EXCLUDED.activated_at, cameras.activated_at),
+        status = COALESCE(EXCLUDED.status, cameras.status),
+        site_id = COALESCE(EXCLUDED.site_id, cameras.site_id),
         updated_at = CURRENT_TIMESTAMP
       RETURNING *
     `;
@@ -163,7 +172,11 @@ class CamerasModel {
       raspberry_pi_ip || null,
       detection_status || 'inactive',
       detection_started_at || null,
-      detection_stopped_at || null
+      detection_stopped_at || null,
+      activated !== undefined ? activated : false,
+      activated_at || null,
+      status || null,
+      site_id || null
     ];
 
     const result = await pool.query(query, values);

@@ -23,6 +23,10 @@ CREATE TABLE IF NOT EXISTS cameras (
   detection_status VARCHAR(20) DEFAULT 'inactive',
   detection_started_at TIMESTAMP,
   detection_stopped_at TIMESTAMP,
+  activated BOOLEAN DEFAULT FALSE,
+  activated_at TIMESTAMP,
+  status VARCHAR(20) DEFAULT 'pending',
+  site_id VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

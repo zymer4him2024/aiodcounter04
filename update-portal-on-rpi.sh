@@ -43,3 +43,4 @@ echo "sudo chmod +x /opt/camera-agent/provisioning_portal.py"
 echo "sudo systemctl daemon-reload"
 echo "sudo systemctl restart provisioning-portal"
 
+

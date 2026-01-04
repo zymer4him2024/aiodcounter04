@@ -196,3 +196,4 @@ curl -I https://us-central1-aiodcouter04.cloudfunctions.net/provisionCamera
 - WiFi configuration can be done anytime via `nmcli` or `raspi-config`
 - After activation, you can SSH to the RPi using its WiFi IP address instead of hotspot
 
+

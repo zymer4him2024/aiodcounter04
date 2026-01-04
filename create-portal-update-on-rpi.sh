@@ -29,3 +29,4 @@ RPI_UPDATE_EOF
 
 echo "Script created. Copy the content above and paste it into your RPi terminal."
 
+

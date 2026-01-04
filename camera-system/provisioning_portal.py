@@ -65,16 +65,17 @@ input{width:100%;padding:16px;background:#F5F5F7;border:none;border-radius:12px;
 </head>
 <body>
 <div class="card">
-  <!-- Step 1: WiFi Configuration -->
+  <!-- Step 1: WiFi Configuration (Optional) -->
   <div class="step active" id="step1">
-    <h1>Step 1: Connect to Site WiFi</h1>
-    <p>Enter your site WiFi network credentials</p>
+    <h1>Step 1: Connect to Site WiFi (Optional)</h1>
+    <p>Enter your site WiFi network credentials, or skip to activation</p>
     <div class="info">Device: {{ hostname }}<br>Serial: {{ serial }}</div>
     <form id="wifiForm">
-      <input type="text" id="wifiSSID" placeholder="WiFi Network Name (SSID)" required autocomplete="off">
+      <input type="text" id="wifiSSID" placeholder="WiFi Network Name (SSID)" autocomplete="off">
       <input type="password" id="wifiPassword" placeholder="WiFi Password" autocomplete="off">
       <button type="submit" class="btn" id="wifiBtn">Connect to WiFi</button>
     </form>
+    <button class="btn" onclick="skipWiFi()" style="margin-top:10px;background:#86868B">Skip WiFi - Go to Activation</button>
     <div id="wifiMsg" style="display:none"></div>
   </div>
 
@@ -102,17 +103,17 @@ input{width:100%;padding:16px;background:#F5F5F7;border:none;border-radius:12px;
 
   <!-- Step 3: Activation -->
   <div class="step" id="step3">
-    <h1>Step 2: Activate Camera</h1>
-    <p>Enter provisioning token from QR code</p>
+    <h1>Activate Camera</h1>
+    <p id="activation-instructions">Scan QR code or enter provisioning token</p>
     <div class="token-details" id="details">
-      <h3>Token Information</h3>
-      <div class="token-row"><span class="token-label">Name:</span><span class="token-value" id="det-name">-</span></div>
-      <div class="token-row"><span class="token-label">Site:</span><span class="token-value" id="det-site">-</span></div>
+      <h3>Camera Information</h3>
+      <div class="token-row"><span class="token-label">Camera ID:</span><span class="token-value" id="det-name">-</span></div>
+      <div class="token-row"><span class="token-label">Site ID:</span><span class="token-value" id="det-site">-</span></div>
     </div>
     <div class="info">Device: {{ hostname }}<br>Serial: {{ serial }}</div>
     <form id="actForm">
-      <input type="text" id="token" placeholder="PT_XXXXXXXX" value="{{ token }}" required>
-      <button type="submit" class="btn" id="btn">Activate Camera</button>
+      <input type="text" id="token" placeholder="PT_XXXXXXXX or scan QR code" value="{{ token }}" required>
+      <button type="submit" class="btn" id="btn">🚀 Activate Camera</button>
     </form>
     <div id="msg" style="margin-top:20px;font-size:14px"></div>
   </div>
@@ -125,6 +126,32 @@ const step3 = document.getElementById('step3');
 const wifiForm = document.getElementById('wifiForm');
 const wifiMsg = document.getElementById('wifiMsg');
 
+// Parse QR code data from URL if present
+let qrData = null;
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const qrParam = urlParams.get('qr');
+  if (qrParam) {
+    try {
+      qrData = JSON.parse(decodeURIComponent(qrParam));
+      console.log('✅ QR Code data loaded:', qrData);
+      // Store QR data for later use
+      window.qrData = qrData;
+      
+      // Auto-fill token if present in QR
+      if (qrData.token) {
+        const tokenInput = document.getElementById('token');
+        if (tokenInput) {
+          tokenInput.value = qrData.token;
+          console.log('✅ Token auto-filled from QR code');
+        }
+      }
+    } catch (e) {
+      console.error('❌ Failed to parse QR data:', e);
+    }
+  }
+})();
+
 // Check WiFi status on page load
 fetch('/wifi-status').then(r => r.json()).then(data => {
   if (data.connected) {
@@ -132,13 +159,53 @@ fetch('/wifi-status').then(r => r.json()).then(data => {
     step1.classList.remove('active');
     step3.classList.add('active');
     document.getElementById('portalIP').textContent = data.ip || window.location.hostname;
+    
+    // If QR data is present, show info immediately
+    if (qrData) {
+      if (qrData.camera_id) {
+        document.getElementById('det-name').innerText = qrData.camera_id;
+      }
+      if (qrData.site_id) {
+        document.getElementById('det-site').innerText = qrData.site_id;
+      }
+      if (qrData.token) {
+        document.getElementById('token').value = qrData.token;
+        checkToken(qrData.token);
+      }
+      details.style.display = 'block';
+    }
   } else {
-    // Show WiFi config
-    step1.classList.add('active');
+    // If QR code has token, skip WiFi and go straight to activation
+    if (qrData && qrData.token) {
+      console.log('✅ QR code has token, skipping WiFi step');
+      step1.classList.remove('active');
+      step3.classList.add('active');
+      
+      // Show QR data info
+      if (qrData.camera_id) {
+        document.getElementById('det-name').innerText = qrData.camera_id;
+      }
+      if (qrData.site_id) {
+        document.getElementById('det-site').innerText = qrData.site_id;
+      }
+      document.getElementById('token').value = qrData.token;
+      checkToken(qrData.token);
+      details.style.display = 'block';
+    } else {
+      // Show WiFi config (optional - user can skip)
+      step1.classList.add('active');
+    }
   }
 }).catch(() => {
-  // If check fails, show WiFi config
-  step1.classList.add('active');
+  // If check fails, check if QR has token
+  if (qrData && qrData.token) {
+    step1.classList.remove('active');
+    step3.classList.add('active');
+    document.getElementById('token').value = qrData.token;
+    checkToken(qrData.token);
+  } else {
+    step1.classList.add('active');
+  }
 });
 
 // WiFi configuration
@@ -190,9 +257,21 @@ function checkWiFiStatus() {
       step3.classList.add('active');
       document.getElementById('portalIP').textContent = data.ip || window.location.hostname;
     } else {
-      alert('WiFi not connected. Please configure WiFi first.');
+      // Allow skipping WiFi
+      step2.classList.remove('active');
+      step3.classList.add('active');
     }
   });
+}
+
+function skipWiFi() {
+  step1.classList.remove('active');
+  step3.classList.add('active');
+  // If QR data exists, use it
+  if (qrData && qrData.token) {
+    document.getElementById('token').value = qrData.token;
+    checkToken(qrData.token);
+  }
 }
 
 // Step 3: Activation (existing activation logic)
@@ -201,8 +280,57 @@ const details = document.getElementById('details');
 const dName = document.getElementById('det-name');
 const dSite = document.getElementById('det-site');
 
+// If QR data is present, display it immediately
+if (qrData) {
+  console.log('📱 QR Code detected:', qrData);
+  
+  if (qrData.camera_id) {
+    dName.innerText = qrData.camera_id;
+    details.style.display = 'block';
+  }
+  
+  if (qrData.site_id) {
+    dSite.innerText = qrData.site_id;
+    details.style.display = 'block';
+  }
+  
+  // Auto-fill token if present
+  if (qrData.token && tInput) {
+    tInput.value = qrData.token;
+    checkToken(qrData.token);
+  }
+  
+  // Store backend URL and API key from QR for activation
+  if (qrData.backend_url) {
+    window.backendUrl = qrData.backend_url;
+    console.log('✅ Backend URL from QR:', qrData.backend_url);
+  }
+  
+  if (qrData.api_key) {
+    window.apiKey = qrData.api_key;
+    console.log('✅ API key from QR code');
+  }
+  
+  // Update instructions if QR code was scanned
+  const instructions = document.getElementById('activation-instructions');
+  if (instructions && qrData.token) {
+    instructions.textContent = '✅ QR code scanned! Token loaded. Click Activate Camera.';
+    instructions.style.color = '#10b981';
+  }
+}
+
 async function checkToken(val) {
-  if (val.length < 8) { details.style.display = 'none'; return; }
+  if (val.length < 8) { 
+    // If no token but QR data exists, show QR info
+    if (qrData && qrData.camera_id) {
+      dName.innerText = qrData.camera_id || 'From QR Code';
+      dSite.innerText = qrData.site_id || 'Unknown Site';
+      details.style.display = 'block';
+    } else {
+      details.style.display = 'none';
+    }
+    return; 
+  }
   try {
     const r = await fetch('/token-info?token=' + val);
     const j = await r.json();
@@ -210,8 +338,24 @@ async function checkToken(val) {
       dName.innerText = j.cameraName;
       dSite.innerText = j.siteName;
       details.style.display = 'block';
-    } else { details.style.display = 'none'; }
-  } catch(e) {}
+    } else { 
+      // Fallback to QR data if token check fails
+      if (qrData && qrData.camera_id) {
+        dName.innerText = qrData.camera_id || 'From QR Code';
+        dSite.innerText = qrData.site_id || 'Unknown Site';
+        details.style.display = 'block';
+      } else {
+        details.style.display = 'none';
+      }
+    }
+  } catch(e) {
+    // On error, show QR data if available
+    if (qrData && qrData.camera_id) {
+      dName.innerText = qrData.camera_id || 'From QR Code';
+      dSite.innerText = qrData.site_id || 'Unknown Site';
+      details.style.display = 'block';
+    }
+  }
 }
 tInput.oninput = (e) => checkToken(e.target.value.trim());
 if (tInput.value) checkToken(tInput.value.trim());
@@ -220,33 +364,88 @@ document.getElementById('actForm').onsubmit = async (e) => {
   e.preventDefault();
   const btn = document.getElementById('btn');
   const msg = document.getElementById('msg');
-  btn.disabled = true; btn.innerText = 'Activating...';
+  const token = tInput.value.trim();
+  
+  if (!token) {
+    msg.style.color = 'red';
+    msg.innerText = '❌ Please enter a token or scan QR code';
+    return;
+  }
+  
+  btn.disabled = true; 
+  btn.innerText = '⏳ Activating...';
+  msg.style.color = '#0071E3';
+  msg.innerText = 'Activating camera...';
+  
   try {
+    // Include QR data if available (backend_url, api_key, etc.)
+    const activationData = {
+      token: token
+    };
+    
+    // Add QR data if available
+    if (qrData) {
+      if (qrData.backend_url) {
+        activationData.backend_url = qrData.backend_url;
+      }
+      if (qrData.api_key) {
+        activationData.api_key = qrData.api_key;
+      }
+      if (qrData.camera_id) {
+        activationData.camera_id = qrData.camera_id;
+      }
+      if (qrData.site_id) {
+        activationData.site_id = qrData.site_id;
+      }
+    }
+    
+    console.log('🚀 Sending activation request:', {token: token.substring(0, 10) + '...', has_qr_data: !!qrData});
+    
     const res = await fetch('/activate', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({token: tInput.value})
+      body: JSON.stringify(activationData)
     });
+    
     const data = await res.json();
+    
     if (data.status === 'success') {
-      msg.style.color = 'green'; msg.innerHTML = '✅ Activated! Camera ID: ' + data.cameraId + '<br>Portal will close in 5 seconds...';
-      setTimeout(() => { window.location.reload(); }, 5000);
+      msg.style.color = 'green'; 
+      msg.innerHTML = '✅ <strong>Camera Activated Successfully!</strong><br>Camera ID: ' + data.cameraId + '<br><br>Portal will close in 5 seconds...';
+      btn.innerText = '✅ Activated';
+      setTimeout(() => { 
+        window.location.href = '/complete';
+      }, 5000);
     } else {
-      msg.style.color = 'red'; msg.innerText = '❌ ' + (data.message || 'Failed');
-      btn.disabled = false; btn.innerText = 'Try Again';
+      msg.style.color = 'red'; 
+      msg.innerText = '❌ ' + (data.message || 'Activation failed');
+      btn.disabled = false; 
+      btn.innerText = '🚀 Activate Camera';
     }
   } catch (err) { 
     msg.style.color = 'red';
-    msg.innerText = 'Network error: ' + err.message; 
+    msg.innerText = '❌ Network error: ' + err.message; 
     btn.disabled = false; 
-    btn.innerText = 'Try Again';
+    btn.innerText = '🚀 Activate Camera';
+    console.error('Activation error:', err);
   }
 };
 </script></body></html>"""
 
 @app.route('/')
 def index():
-    return render_template_string(PORTAL_HTML, hostname=sys_info['hostname'], serial=sys_info['serial'], token=request.args.get('token', ''))
+    token = request.args.get('token', '')
+    qr_param = request.args.get('qr', '')
+    
+    # Log QR data if present (for debugging)
+    if qr_param:
+        try:
+            qr_data = json.loads(qr_param)
+            logger.info(f"QR code data received: camera_id={qr_data.get('camera_id')}, site_id={qr_data.get('site_id')}")
+        except Exception as e:
+            logger.warning(f"Invalid QR parameter received: {str(e)}")
+    
+    return render_template_string(PORTAL_HTML, hostname=sys_info['hostname'], serial=sys_info['serial'], token=token)
 
 @app.route('/token-info')
 def token_info():
@@ -396,15 +595,67 @@ def activate():
     try:
         data = request.get_json()
         token = data.get('token', '').strip()
+        backend_url = data.get('backend_url')  # From QR code
+        api_key = data.get('api_key')  # From QR code
+        camera_id = data.get('camera_id')  # From QR code
+        site_id = data.get('site_id')  # From QR code
+        
         logger.info(f"Activation request received for token: {token[:10]}...")
+        logger.info(f"Request data: token={bool(token)}, backend_url={bool(backend_url)}, api_key={bool(api_key)}, camera_id={bool(camera_id)}, site_id={bool(site_id)}")
+        if backend_url:
+            logger.info(f"Backend URL from QR: {backend_url}")
+        if api_key:
+            logger.info(f"API key from QR: {api_key[:10]}...")
+        if not token:
+            logger.error("No token provided in activation request")
+            return jsonify({"status": "error", "message": "Token is required"}), 400
         
         payload = {"provisioningToken": token, "deviceInfo": {"macAddress": sys_info['mac'], "serialNumber": sys_info['serial'], "hostname": sys_info['hostname']}}
-        logger.info(f"Calling provision server: {PROVISION_SERVER}")
-        r = requests.post(PROVISION_SERVER, json=payload, timeout=20)
-        if r.status_code == 200:
+        
+        # Add QR code data to payload if available
+        if camera_id:
+            payload['cameraId'] = camera_id
+        if site_id:
+            payload['siteId'] = site_id
+        
+        # Always use Firebase provision endpoint for provisioning
+        # The backend_url in QR code is for camera-agent to use later, not for provisioning
+        provision_url = PROVISION_SERVER
+        headers = {}
+        
+        logger.info(f"Using Firebase provision server: {provision_url}")
+        logger.info(f"Backend URL from QR will be saved to config for camera-agent: {backend_url or 'not provided'}")
+        
+        logger.info(f"Calling provision server: {provision_url}")
+        try:
+            r = requests.post(provision_url, json=payload, headers=headers, timeout=20)
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request to provision server failed: {e}")
+            return jsonify({"status": "error", "message": f"Failed to connect to provision server: {str(e)}"}), 500
+        
+        logger.info(f"Provision server response: {r.status_code}")
+        
+        # Check if response has content
+        if not r.text or not r.text.strip():
+            logger.error("Provision server returned empty response")
+            return jsonify({"status": "error", "message": "Provision server returned empty response"}), 500
+        
+        # Try to parse JSON response
+        try:
             res = r.json()
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response: {e}. Response text: {r.text[:200]}")
+            return jsonify({"status": "error", "message": f"Invalid response from provision server: {r.text[:200]}"}), 500
+        
+        if r.status_code == 200:
+            # Check if response has config (provision response)
+            if 'config' not in res:
+                logger.error(f"Response missing 'config' field. Response keys: {list(res.keys())}")
+                logger.error(f"Full response: {json.dumps(res, indent=2)[:500]}")
+                return jsonify({"status": "error", "message": "Provision server response missing configuration"}), 500
+            
             config = res['config']
-            camera_id = res.get('cameraId')
+            camera_id = res.get('cameraId') or res.get('camera_id') or camera_id
             logger.info(f"Provisioning successful! Camera ID: {camera_id}")
             
             # Transform config to match camera_agent.py expectations
@@ -429,6 +680,14 @@ def activate():
             # Add serviceAccountPath (expected to be pre-installed on RPi)
             if 'serviceAccountPath' not in config:
                 config['serviceAccountPath'] = '/opt/camera-agent/service-account.json'
+            
+            # Add backend_url and api_key from QR code if provided
+            if backend_url:
+                config['backendUrl'] = backend_url
+                logger.info(f"Added backend URL from QR code: {backend_url}")
+            if api_key:
+                config['apiKey'] = api_key
+                logger.info("Added API key from QR code")
             
             # Add modelPath if not present (default location)
             if 'detectionConfig' in config and 'modelPath' not in config['detectionConfig']:
@@ -485,18 +744,169 @@ def activate():
             time.sleep(1)
             subprocess.run(["sudo", "systemctl", "stop", "provisioning-portal"], check=False)
             
-            return jsonify({"status": "success", "cameraId": res['cameraId']})
-        return jsonify({"status": "error", "message": r.text}), 400
+            return jsonify({"status": "success", "cameraId": res.get('cameraId', camera_id)})
+        else:
+            error_msg = r.text or f"HTTP {r.status_code}"
+            logger.error(f"Provision server returned error {r.status_code}: {error_msg}")
+            return jsonify({"status": "error", "message": error_msg}), r.status_code
     except Exception as e: 
+        logger.error(f"Activation error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/complete')
+def complete():
+    """Success page after activation"""
+    return """<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camera Activated</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F5F5F7;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.card{background:white;padding:40px;border-radius:24px;box-shadow:0 10px 40px rgba(0,0,0,0.05);width:100%;max-width:440px;text-align:center}
+h1{font-size:28px;font-weight:600;margin-bottom:16px;color:#1D1D1F}
+p{color:#86868B;margin-bottom:24px;font-size:15px}
+.success-icon{font-size:64px;margin-bottom:24px}
+.status-box{background:#d4edda;color:#155724;padding:20px;border-radius:12px;margin:24px 0;border:1px solid #c3e6cb}
+.status-box strong{display:block;margin-bottom:8px;font-size:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="success-icon">✅</div>
+  <h1>Camera Activated Successfully!</h1>
+  <p>Your camera is now configured and ready to use.</p>
+  <div class="status-box">
+    <strong>Next Steps:</strong>
+    <ul style="text-align:left;margin:8px 0 0 20px;padding:0">
+      <li>Camera will start counting objects automatically</li>
+      <li>View live counts in your dashboard</li>
+      <li>You can close this window</li>
+    </ul>
+  </div>
+  <p style="font-size:13px;color:#86868B">Portal will close automatically</p>
+</div>
+<script>
+setTimeout(() => {
+  window.close();
+}, 10000);
+</script>
+</body></html>"""
 
 if __name__ == "__main__":
     if Path(CONFIG_PATH).exists(): sys.exit(0)
-    # 1. Start Hotspot
+    
+    logger.info("Starting provisioning portal - setting up hotspot...")
+    
+    # Get hostname for SSID (needed for logging and hotspot creation)
+    try:
+        hostname_short = subprocess.check_output(
+            ["hostname"], shell=True
+        ).decode().strip()[:15]
+    except:
+        hostname_short = "Camera"
+    
+    # 1. Ensure NetworkManager is managing wlan0
+    subprocess.run(["nmcli", "dev", "set", "wlan0", "managed", "yes"], check=False)
+    time.sleep(1)
+    
+    # 2. Check if Hotspot connection exists, create if not
+    result = subprocess.run(
+        ["nmcli", "-t", "-f", "NAME", "con", "show", "Hotspot"],
+        capture_output=True, text=True
+    )
+    
+    if result.returncode != 0:
+        logger.info("Hotspot connection not found, creating new one...")
+        
+        ssid = f"{HOTSPOT_SSID_PREFIX}-{hostname_short}"
+        logger.info(f"Creating hotspot: {ssid}")
+        
+        # Create hotspot
+        create_result = subprocess.run([
+            "nmcli", "device", "wifi", "hotspot",
+            "ssid", ssid,
+            "password", HOTSPOT_PASSWORD,
+            "ifname", "wlan0",
+            "con-name", "Hotspot"
+        ], capture_output=True, text=True, check=False)
+        
+        if create_result.returncode == 0:
+            logger.info("✅ Hotspot created successfully")
+            
+            # Configure for shared mode (DHCP)
+            subprocess.run([
+                "nmcli", "connection", "modify", "Hotspot",
+                "ipv4.method", "shared",
+                "ipv4.addresses", "192.168.4.1/24",
+                "connection.autoconnect", "yes"
+            ], check=False)
+            logger.info("✅ Hotspot configured for shared mode")
+        else:
+            logger.error(f"Failed to create hotspot: {create_result.stderr}")
+    else:
+        logger.info("Hotspot connection already exists")
+    
+    # 3. Start Hotspot
+    logger.info("Activating hotspot...")
+    subprocess.run(["nmcli", "con", "down", "Hotspot"], check=False)
+    time.sleep(1)
     subprocess.run(["nmcli", "con", "up", "Hotspot"], check=False)
-    # 2. WAIT for NetworkManager to settle
+    
+    # 4. Wait for NetworkManager to settle
+    logger.info("Waiting for NetworkManager to settle...")
     time.sleep(3)
-    # 3. Force IP
-    subprocess.run(["sudo", "ifconfig", "wlan0", "192.168.4.1", "netmask", "255.255.255.0", "up"], check=False)
-    # 4. Start Server
+    
+    # 5. Force IP address (critical step)
+    logger.info("Setting IP address to 192.168.4.1...")
+    # Try ip command first (more reliable)
+    subprocess.run([
+        "sudo", "ip", "addr", "flush", "dev", "wlan0"
+    ], check=False)
+    subprocess.run([
+        "sudo", "ip", "addr", "add", "192.168.4.1/24", "dev", "wlan0"
+    ], check=False)
+    
+    # Fallback to ifconfig
+    subprocess.run([
+        "sudo", "ifconfig", "wlan0", 
+        "192.168.4.1", "netmask", "255.255.255.0", "up"
+    ], check=False)
+    
+    # Verify IP
+    time.sleep(1)
+    try:
+        ip_result = subprocess.check_output(
+            ["ip", "addr", "show", "wlan0"],
+            text=True
+        )
+        if "192.168.4.1" in ip_result:
+            logger.info("✅ IP address set to 192.168.4.1")
+        else:
+            logger.warning("⚠️ IP address may not be correct, trying again...")
+            subprocess.run([
+                "sudo", "ifconfig", "wlan0", 
+                "192.168.4.1", "netmask", "255.255.255.0", "up"
+            ], check=False)
+            time.sleep(1)
+    except Exception as e:
+        logger.warning(f"Could not verify IP address: {e}")
+    
+    # 6. Check for port conflicts
+    logger.info("Checking for port conflicts...")
+    try:
+        port_check = subprocess.run(
+            ["sudo", "fuser", "80/tcp"],
+            capture_output=True, text=True, check=False
+        )
+        if port_check.returncode == 0:
+            logger.warning("Port 80 is in use, attempting to free it...")
+            subprocess.run(["sudo", "fuser", "-k", "80/tcp"], check=False)
+            time.sleep(1)
+    except:
+        pass
+    
+    # 7. Start Server
+    logger.info("Starting Flask server on port 80...")
+    logger.info(f"Hotspot SSID: {HOTSPOT_SSID_PREFIX}-{hostname_short if 'hostname_short' in locals() else 'Camera'}")
+    logger.info("Access portal at: http://192.168.4.1")
     app.run(host='0.0.0.0', port=80)

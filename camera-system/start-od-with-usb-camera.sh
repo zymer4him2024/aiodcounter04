@@ -193,3 +193,4 @@ echo "Stop the service with:"
 echo "  sudo systemctl stop camera-agent"
 echo ""
 
+

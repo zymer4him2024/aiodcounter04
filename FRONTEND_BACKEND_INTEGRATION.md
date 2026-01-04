@@ -206,3 +206,4 @@ console.log(result.data);
 3. **Test**: Open dashboard and try start/stop detection on a camera
 4. **Monitor**: Check Firebase Functions logs for errors
 
+
